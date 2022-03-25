@@ -1,0 +1,1 @@
+* configure proxies and localhost during build phase

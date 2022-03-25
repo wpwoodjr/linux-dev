@@ -1,0 +1,145 @@
+#!/bin/bash
+# linux-dev update-tools.sh
+
+if [ "$1" = "base" ]; then
+  echo -e "\n===========> installing base tools..."
+  apt-get update \
+  && apt-get upgrade -qq \
+  && apt-get install --no-install-recommends -qq \
+    ca-certificates \
+    lsb-release \
+    curl \
+    wget \
+    jq \
+    git \
+    ssh \
+    sudo \
+    iputils-ping \
+    libicu66 \
+    libunwind8 \
+    netcat \
+    apt-transport-https \
+    gnupg \
+    gnupg-agent \
+    software-properties-common \
+    htop \
+    nano \
+    vim \
+    less \
+    kafkacat
+
+  # add docker to apt
+  echo -e "\n===========> adding docker to apt..."
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
+  && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
+    >/etc/apt/sources.list.d/docker.list
+
+  # add kubectl to apt
+  echo -e "\n===========> adding kubectl to apt..."
+  curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg \
+  && echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" \
+    >/etc/apt/sources.list.d/kubernetes.list
+
+  # add azure-cli to apt
+  echo -e "\n===========> adding azure-cli to apt..."
+  curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/microsoft.gpg \
+  && echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" \
+    >/etc/apt/sources.list.d/azure-cli.list
+
+  # update apt and install docker-cli, kubectl, and azure-cli
+  echo -e "\n===========> installing docker-cli, kubectl, and azure-cli..."
+  apt-get update \
+  && apt-get install --no-install-recommends -qq \
+    docker-ce-cli \
+    kubectl \
+    azure-cli
+
+  # # install self-signed certs
+  # echo -e "\n===========> installing self-signed certs..."
+  # update-ca-certificates
+
+  # create user and add to sudo, docker groups
+  #TODO fails if $GROUP already exists but $GID does not
+  #TODO fails if $UID already exists
+  echo -e "\n===========> creating user $USER with gid $GID in group $GROUP..."
+  groupadd -f -g "$GID" "$GROUP" \
+  && useradd -m -u "$UID" -g "$GID" -s /bin/bash "$USER" \
+  && usermod -aG sudo "$USER" \
+  && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers \
+  && if [ -z "$DOCKER_GID" ]; then groupadd docker; \
+    else groupadd -g "$DOCKER_GID" docker; fi \
+  && usermod -aG docker "$USER"
+
+  exit
+fi
+
+if [ "$1" = "install" ]; then
+  # install krew kubectl plugin-manager
+  echo -e "\n===========> installing krew kubectl plugin manager..."
+  rm -rf /tmp/krew && mkdir -p /tmp/krew \
+  && OS="$(uname | tr '[:upper:]' '[:lower:]')" \
+  && ARCH="$(uname -m | sed -e 's/x86_64/amd64/' -e 's/\(arm\)\(64\)\?.*/\1\2/' -e 's/aarch64$/arm64/')" \
+  && KREW="krew-${OS}_${ARCH}" \
+  && curl -fsSLO "https://github.com/kubernetes-sigs/krew/releases/latest/download/${KREW}.tar.gz" \
+  && tar zxvf "${KREW}.tar.gz" -C /tmp/krew \
+  && "/tmp/krew/${KREW}" install krew \
+  && rm -rf /tmp/krew
+else
+  # upgrade apt packages
+  echo -e "\n===========> upgrading apt packages..."
+  sudo DEBIAN_FRONTEND=noninteractive apt-get update
+  sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -qq
+
+  # upgrade krew plugin
+  echo -e "\n===========> upgrading krew kubernetes plugin manager..."
+  kubectl krew upgrade
+fi
+
+# get latest helm 3
+echo -e "\n===========> installing helm 3..."
+curl -sSL https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+helm version
+
+# gets the latest github version of a package
+get_github_latest_version() {
+  local PAT='v[0-9]*.[0-9]*.[0-9]*'
+  VERSION=$(curl -SsL "https://github.com/$1/releases/latest" | \
+    grep href=\"/$1/releases/tag/$PAT\" | \
+    grep -o tag/$PAT | \
+    cut -d "/" -f 2)
+}
+
+# get devspace
+# echo -e "\n===========> installing devspace..."
+# get_github_latest_version "devspace-cloud/devspace" \
+# && rm -rf /tmp/install && mkdir -p /tmp/install \
+# && curl -L "https://github.com/devspace-cloud/devspace/releases/download/$VERSION/devspace-linux-amd64" -o "/tmp/install/devspace" \
+# && sudo install /tmp/install/devspace /usr/local/bin \
+# && rm -rf /tmp/install \
+# && devspace --version
+
+# get kpt
+echo -e "\n===========> installing kpt..."
+rm -rf /tmp/install && mkdir -p /tmp/install \
+&& curl -L "https://storage.googleapis.com/kpt-dev/latest/linux_amd64/kpt" -o /tmp/install/kpt \
+&& sudo install /tmp/install/kpt /usr/local/bin \
+&& rm -rf /tmp/install \
+&& echo "kpt version $(kpt version)"
+
+# get kustomize
+echo -e "\n===========> installing kustomize..."
+rm -rf /tmp/install && mkdir -p /tmp/install && cd /tmp/install \
+&& curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash \
+&& sudo install /tmp/install/kustomize /usr/local/bin \
+&& rm -rf /tmp/install
+cd - >/dev/null
+
+# get k9s
+echo -e "\n===========> installing k9s..."
+get_github_latest_version "derailed/k9s" \
+&& rm -rf /tmp/install && mkdir -p /tmp/install \
+&& curl -L "https://github.com/derailed/k9s/releases/download/${VERSION}/k9s_Linux_x86_64.tar.gz" -o "/tmp/install/k9s.tar.gz" \
+&& tar xzf /tmp/install/k9s.tar.gz -C /tmp/install \
+&& sudo install /tmp/install/k9s /usr/local/bin \
+&& rm -rf /tmp/install \
+&& k9s version

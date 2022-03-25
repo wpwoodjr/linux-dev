@@ -1,7 +1,7 @@
 # Release Notes
 
 2.1.0 Mar 25, 2022
-* Remove certs
+* Remove certs etc
 
 2.0.2 Feb 16, 2022
 * Fix issue with installing krew

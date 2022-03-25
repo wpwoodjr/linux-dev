@@ -1,0 +1,40 @@
+
+### linux-dev ###
+
+# set up aliases
+alias set-proxy="source /usr/local/bin/set-proxy.sh"
+alias no-proxy="source /usr/local/bin/no-proxy.sh"
+
+if [ -z "$LINUX_DEV_INITIALIZED" ]
+then
+  export LINUX_DEV_INITIALIZED=1
+
+  # print help text
+  cat "$HOME/help.txt"
+
+  # configure kubeconfig
+  if [ ! -z "$kubeconfig" ]
+  then
+    if [ ! -f "$kubeconfig" ]; then echo "Kubeconfig file not found: $kubeconfig"
+    elif [ "$kubeconfig" -nt "$HOME/.kube/config" ]; then merge-kubeconfig "$kubeconfig"
+    else echo "Kubeconfig file \"$kubeconfig\" isn't newer than \"$HOME/.kube/config\", not merged"
+    fi
+    unset kubeconfig
+  fi
+
+  # configure proxies
+  [ -z "$user$passwd" ] && no-proxy && echo "To set proxy, run: set-proxy USERNAME [PASSWORD]"
+  [ ! -z "$user$passwd" ] && set-proxy "$user" "$passwd" && unset user passwd
+
+  # configure krew
+  export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
+
+  # show mounted directory
+  echo Host directory \"$HOST_DIR\" mounted at \"$HOME/work\"
+
+  # convert username in prompt to lower case
+  # PS1="$(sed <<<$PS1 -e s/\\u/$(echo $(id -u -n) | tr [:upper:] [:lower:])/g)"
+
+  # make docker group owner of /var/run/docker.sock
+  [ -S "/var/run/docker.sock" ] && sudo chgrp docker "/var/run/docker.sock" && sudo chmod g+rw "/var/run/docker.sock"
+fi

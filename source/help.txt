@@ -1,0 +1,27 @@
+
+Welcome to the Linux development environment in Docker!
+  version 2.1.0, based on Ubuntu 20.04
+
+These commands for Kubernetes development are pre-installed:
+  kubectl, docker, helm 3, az (azure cli), k9s, krew, kafkacat, kpt, kustomize
+
+These Linux utilities are pre-installed:
+  curl, wget, git, jq, htop, nano, vim, less, ping, ssh
+
+These custom utilities are pre-installed:
+  # set proxies
+  set-proxy USERNAME [PASSWORD]
+
+  # remove all proxies
+  no-proxy
+
+  # merge a downloaded kubeconfig file into default kubeconfig at ~/.kube/config (in container)
+  merge-kubeconfig KUBECONFIG_FILE
+
+  # merge AKS credentials into default kubeconfig file at ~/.kube/config (in container)
+  #   Note: use your normal laptop browser when prompted to login with browser
+  az-get-credentials SUBSCRIPTION RESOURCE-GROUP AKS-CLUSTER-NAME
+
+  # update pre-installed software tools
+  update-tools
+

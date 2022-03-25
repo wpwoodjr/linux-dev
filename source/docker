@@ -1,0 +1,32 @@
+#!/bin/bash
+# script to add proxies to docker build/run/create commands
+
+cmd=/usr/bin/docker
+args=()
+i=0
+add_arg() {
+  args[i]="$1"
+  i=$(($i+1))
+}
+add_proxies() {
+  local proxies=(http_proxy HTTP_PROXY https_proxy HTTPS_PROXY ftp_proxy FTP_PROXY no_proxy NO_PROXY)
+  for p in "${proxies[@]}"
+  do
+    add_arg "$1"
+    add_arg "$p"
+  done
+}
+
+for arg
+do
+  add_arg "$arg"
+  if [[ "$arg" = "build" ]]
+  then
+    add_proxies "--build-arg"
+  # don't inject proxies into running container (docker exec)
+  elif [[ "$arg" = "run" || "$arg" = "create" ]]
+  then
+    add_proxies "--env"
+  fi
+done
+exec $cmd "${args[@]}"
