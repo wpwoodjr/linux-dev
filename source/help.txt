@@ -1,6 +1,6 @@
 
 Welcome to the Linux development environment in Docker!
-  version 2.1.0, based on Ubuntu 20.04
+  version 2.1.1, based on Ubuntu 20.04
 
 These commands for Kubernetes development are pre-installed:
   kubectl, docker, helm 3, az (azure cli), k9s, krew, kafkacat, kpt, kustomize

@@ -1,5 +1,8 @@
 # Release Notes
 
+2.1.1 Mar 25, 2022
+* Fix permission issue during krew install
+
 2.1.0 Mar 25, 2022
 * Remove certs etc
 
