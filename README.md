@@ -98,17 +98,23 @@ build.bat --noproxy
 ### Run the linux-dev container in Docker
 Run the **linux-dev** container in Docker as follows on Linux and Mac:
 ```
-./run.sh "HOST-WORKING-DIRECTORY" [CONTAINER-NAME]
+./run.sh "HOST-WORKING-DIRECTORY" [CONTAINER-NAME] [ADDITIONAL-ARGUMENTS]
 ```
+`HOST-WORKING-DIRECTORY` is the working directory on your host computer or laptop which will be mounted in **linux-dev**.  It can contain source files, your kubeconfig file, etc.  Enclose it in double quotes to prevent issues with special characters such as spaces in the directory name.
+
+By default the container is named **linux-dev**, however if you want to run more than one **linux-dev** container you can specify a different `CONTAINER-NAME` for each one.  This may be useful when working on different projects for instance.
+
+`ADDITIONAL-ARGUMENTS` are additional arguments for the `docker run` command.  An example of `ADDITIONAL-ARGUMENTS` would be `-p 8080:8080` to map port `8080` in **linux-dev** to the host port `8080`.
+
+> **Note:** In order to pass `ADDITIONAL-ARGUMENTS`, you must also pass `CONTAINER-NAME`.
+
+**linux-dev** runs in the background, and will run until stopped with `docker stop linux-dev`, even across reboots.
+
 On Windows:
 ```
 run.bat "HOST-WORKING-DIRECTORY" [CONTAINER-NAME]
 ```
-`HOST-WORKING-DIRECTORY` is the working directory on your host computer or laptop which will be mounted in **linux-dev**.  It can contain source files, your kubeconfig file, etc.  Enclose it in double quotes to prevent issues with special characters such as spaces in the directory name.
-
-By default the container is named **linux-dev**, however if you want to run more than one **linux-dev** container you can specify a different CONTAINER-NAME for each one.  This may be useful when working on different projects for instance.
-
-**linux-dev** runs in the background, and will run until stopped with `docker stop linux-dev`, even across reboots.
+> **Note:** `ADDITIONAL-ARGUMENTS` is not implemented for Windows.
 
 ## Using linux-dev
 ### Exec-ing into linux-dev
