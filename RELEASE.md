@@ -1,5 +1,8 @@
 # Release Notes
 
+2.1.?
+* Fix for Rancher Desktop - use full path for docker command in case sudo does not know the path
+
 2.1.0 Mar 25, 2022
 * Remove certs etc
 * Fix permission issue during krew install
