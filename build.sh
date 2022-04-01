@@ -8,12 +8,13 @@ _GROUP="$(id -g -n)"
 _GID="$(id -g)"
 HOME_DIR="/home/$_USER"
 DOCKER_GID="$(cat /etc/group | grep docker | cut -d: -f3)"
+docker="$(which docker)"
 
 if [ "$1" = "--noproxy" ]
 then
   shift 1
   echo "Building docker container..."
-  sudo -E docker build --tag "$image" source \
+  sudo -E "$docker" build --tag "$image" source \
     --progress plain \
     --build-arg USER="$_USER" \
     --build-arg HOME_DIR="$HOME_DIR" \
@@ -71,7 +72,7 @@ else
   noproxy="localhost,127.0.0.1,.corp.com,.corp2.com"
 
   echo "Building docker container..."
-  sudo -E docker build --tag "$image" source \
+  sudo -E "$docker" build --tag "$image" source \
     --progress plain \
     --build-arg USER="$_USER" \
     --build-arg HOME_DIR="$HOME_DIR" \
