@@ -2,6 +2,7 @@
 
 2.1.?
 * Fix for Rancher Desktop - use full path for docker command in case sudo does not know the path
+* In `run.sh`, pass arguments after 2nd argument (container name) as additional `docker run` parameters
 
 2.1.0 Mar 25, 2022
 * Remove certs etc
