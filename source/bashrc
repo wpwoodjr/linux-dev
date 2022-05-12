@@ -4,6 +4,7 @@
 # set up aliases
 alias set-proxy="source /usr/local/bin/set-proxy.sh"
 alias no-proxy="source /usr/local/bin/no-proxy.sh"
+alias update-tools="install-tools upgrade"
 
 if [ -z "$LINUX_DEV_INITIALIZED" ]
 then
