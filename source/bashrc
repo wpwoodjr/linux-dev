@@ -13,6 +13,9 @@ then
   # do one-time initializations
   [ -f "$HOME/init" ] && source "$HOME/init" && rm "$HOME/init"
 
+  # set locale
+  source /etc/default/locale && export LANG
+
   # print help text
   cat "$HOME/help.txt"
 

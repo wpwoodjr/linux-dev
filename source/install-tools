@@ -58,6 +58,7 @@ do
         echo -e "\n===========> installing base tools..."
         $sudo apt-get install --no-install-recommends -qq \
             tzdata \
+            locales \
             ca-certificates \
             lsb-release \
             curl \
