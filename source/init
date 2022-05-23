@@ -1,0 +1,5 @@
+#!/bin/bash
+# linux-dev one-time initializations
+
+echo -e "\n===========> configuring time zone...\n"
+sudo dpkg-reconfigure tzdata 2>/dev/null

@@ -57,6 +57,7 @@ do
     "base")
         echo -e "\n===========> installing base tools..."
         $sudo apt-get install --no-install-recommends -qq \
+            tzdata \
             ca-certificates \
             lsb-release \
             curl \
@@ -136,8 +137,7 @@ do
         $sudo apt-get install --no-install-recommends -qq \
             build-essential
         sh <(curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs) -y \
-        && register_upgrade "rust-upgrade" \
-        && echo -e "\n===========> re-login to set path"
+        && register_upgrade "rust-upgrade"
         ;;
 
     "rust-upgrade")
@@ -157,8 +157,7 @@ do
         && $sudo tar -C "/usr/local" -xzf "/tmp/install/go.tar.gz" \
         && add_path "/usr/local/go/bin" \
         && /usr/local/go/bin/go version \
-        && register_upgrade "go" \
-        && echo -e "\n===========> re-login to set path"
+        && register_upgrade "go"
         rm -rf "/tmp/install"
         ;;
 

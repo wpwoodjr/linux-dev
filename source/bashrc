@@ -10,6 +10,9 @@ if [ -z "$LINUX_DEV_INITIALIZED" ]
 then
   export LINUX_DEV_INITIALIZED=1
 
+  # do one-time initializations
+  [ -f "$HOME/init" ] && source "$HOME/init" && rm "$HOME/init"
+
   # print help text
   cat "$HOME/help.txt"
 

@@ -33,7 +33,7 @@ WORKDIR "$HOME_DIR/work"
 ENV TERM=$TERM
 
 # copy help.txt, bashrc
-COPY --chown=$USER:$GROUP help.txt bashrc "$HOME_DIR"/
+COPY --chown=$USER:$GROUP help.txt bashrc init "$HOME_DIR"/
 
 # configure git, help.txt, and .bashrc; install k9s, helm 3, krew, kpt, kustomize as $USER
 RUN echo "\n===========> configuring git, help text, and .bashrc..." \
@@ -43,4 +43,6 @@ RUN echo "\n===========> configuring git, help text, and .bashrc..." \
 && sed -i 's/\r$//' "$HOME_DIR/bashrc" \
 && cat "$HOME_DIR/bashrc" >>"$HOME_DIR/.bashrc" \
 && rm "$HOME_DIR/bashrc" \
+&& sed -i 's/\r$//' "$HOME_DIR/init" \
+&& chmod 755 "$HOME_DIR/init" \
 && /usr/local/bin/install-tools krew helm3 kpt kustomize k9s
