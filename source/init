@@ -1,9 +1,7 @@
 #!/bin/bash
 # linux-dev one-time initializations
 
-echo -e "\n===========> setting default locale to C.UTF-8..."
-sudo update-locale LANG=C.UTF-8
-echo -e "             ...to change default locale, run 'sudo dpkg-reconfigure locales'\n"
-
 echo -e "\n===========> configuring time zone...\n"
 sudo dpkg-reconfigure tzdata 2>/dev/null
+
+echo -e "\n===========> default locale is $LANG; to change it, run 'sudo dpkg-reconfigure locales'\n"
