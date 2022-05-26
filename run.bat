@@ -11,7 +11,7 @@ echo>%username% && dir /b/l %username%>%username% && set /p USER=<%username% && 
 
 set WORK_DIR="/home/%USER%/work"
 
-docker run -itd --restart=always --hostname %NAME% --name %NAME% --env HOST_DIR="%~1" -v %1:%WORK_DIR% -e DOCKER_HOST=tcp://host.docker.internal:2375 linux-dev
+docker run -itd --restart=always --hostname %NAME% --name %NAME% --env HOST_DIR="%~1" -v %1:%WORK_DIR% -e DOCKER_HOST=tcp://host.docker.internal:2375 linux-dev /bin/bash --norc
 if %errorlevel% neq 0 exit /B %errorlevel%
 
 echo Container %NAME% running with host directory "%~1" mounted at %WORK_DIR%
