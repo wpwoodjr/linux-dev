@@ -1,1 +1,7 @@
 * configure proxies and localhost during build phase
+> restarts ok when run via Windows
+> username wpwoodjr
+> tzdata not working
+windows files have root owner when container started in windows
+docker daemon not working when run via Windows
+release new version
