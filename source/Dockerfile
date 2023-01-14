@@ -7,7 +7,10 @@
 
 ARG UBUNTU_VERSION="22.04"
 FROM ubuntu:${UBUNTU_VERSION}
-ARG USER UID GROUP GID DOCKER_GID HOME_DIR TERM="xterm-256color"
+ARG USER UID GROUP GID DOCKER_GID HOME_DIR \
+  TERM="xterm-256color" \
+  USER_TOOLS="docker-ce-cli"
+#  USER_TOOLS="docker-ce-cli kubectl azure-cli kafkacat krew helm3 kpt kustomize k9s"
 
 # # add self-signed certs
 # ADD ./certs.tar /usr/local/share/ca-certificates/
@@ -21,23 +24,22 @@ ARG USER UID GROUP GID DOCKER_GID HOME_DIR TERM="xterm-256color"
 #   az-get-credentials - script to get Azure AKS credentials
 COPY install-tools docker set-proxy.sh no-proxy.sh merge-kubeconfig az-get-credentials /usr/local/bin/
 
-# upgrade existing and install base set of utilities/packages; create $USER
+# install utilities, init and create $USER
 #   sed command converts Windows (CR LF) to Unix (LF) line endings
-RUN echo "\n===========> installing tools..." \
+RUN echo "\n===========> installing utility tools..." \
 && for f in $(ls "/usr/local/bin"); do chmod a+rx-w "/usr/local/bin/$f" && sed -i 's/\r$//' "/usr/local/bin/$f" && echo "$f"; done \
-&& /usr/local/bin/install-tools init base docker certs user \
-&& echo "\n===========> setting locale to C.UTF-8..." \
-&& update-locale LANG=C.UTF-8
+&& /usr/local/bin/install-tools init user
 
 USER "$USER"
-WORKDIR "$HOME_DIR/work"
+WORKDIR "$HOME_DIR"
 ENV TERM=$TERM
 
-# copy help.txt, bashrc
+# copy help.txt, bashrc, init
 COPY --chown=$USER:$GROUP help.txt bashrc init "$HOME_DIR"/
 
-# configure git, help.txt, .bashrc, and init; install k9s, helm 3, krew, kpt, kustomize as $USER
-RUN echo "\n===========> configuring git, help text, and .bashrc..." \
+# install base, locale, and user tools; configure git, help.txt, .bashrc, and init
+RUN /usr/local/bin/install-tools base locale $USER_TOOLS \
+&& echo "\n===========> configuring git, help text, .bashrc, and init..." \
 && git config --global http.proxyAuthMethod 'basic' \
 && sed -i 's/\r$//' "$HOME_DIR/help.txt" \
 && chmod 644 "$HOME_DIR/help.txt" \
@@ -45,5 +47,4 @@ RUN echo "\n===========> configuring git, help text, and .bashrc..." \
 && cat "$HOME_DIR/bashrc" >>"$HOME_DIR/.bashrc" \
 && rm "$HOME_DIR/bashrc" \
 && sed -i 's/\r$//' "$HOME_DIR/init" \
-&& chmod 755 "$HOME_DIR/init" \
-&& /usr/local/bin/install-tools krew helm3 kpt kustomize k9s
+&& chmod 755 "$HOME_DIR/init"

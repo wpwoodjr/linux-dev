@@ -15,10 +15,18 @@ get_github_latest_version() {
     | cut -d "/" -f 2)
 }
 
+mkdir -p "$HOME/.linux-dev"
 # registers a tool for upgrades
-upgrade_tools="$HOME/.linux-dev-upgrade-tools"
+upgrade_tools="$HOME/.linux-dev/upgrade-tools"
 register_upgrade() {
     [ "$EUID" -ne 0 ] && grep -s -q "^$1$" "$upgrade_tools" || echo "$1" >>"$upgrade_tools"
+}
+
+# registers a tool as installed
+installed_tools="$HOME/.linux-dev/installed-tools"
+register_installed() {
+    echo -e "\n===========> installing $1..."
+    [ "$EUID" -ne 0 ] && grep -s -q "^$1$" "$installed_tools" || echo "$1" >>"$installed_tools"
 }
 
 # add to path in .bashrc
@@ -36,13 +44,14 @@ sudo=""
 export DEBIAN_FRONTEND="noninteractive"
 OS="$(uname | tr '[:upper:]' '[:lower:]')"
 ARCH="$(uname -m | sed -e 's/x86_64/amd64/' -e 's/\(arm\)\(64\)\?.*/\1\2/' -e 's/aarch64$/arm64/')"
+[ -z "$USER" ] && USER="$(whoami)"
 
 for action
 do
     case "$action" in
 
     "init")
-        echo -e "\n===========> initializing..."
+        register_installed "init"
         # To make it easier for build and release pipelines to run apt-get,
         # configure apt to not require confirmation (assume the -y argument by default)
         #RUN echo "APT::Get::Assume-Yes \"true\";" > /etc/apt/apt.conf.d/90assumeyes
@@ -50,12 +59,14 @@ do
         #RUN echo "Acquire { https::Verify-Peer false }" >>/etc/apt/apt.conf.d/99verify-peer.conf
         $sudo rm -f /etc/apt/apt.conf.d/docker-no-languages \
         && $sudo apt-get update \
-        && $sudo apt-get install --no-install-recommends -qq apt-utils \
+        && $sudo apt-get install --no-install-recommends -qq \
+            apt-utils \
+            sudo \
         && $sudo apt-get upgrade -qq
         ;;
 
     "base")
-        echo -e "\n===========> installing base tools..."
+        register_installed "base tools"
         $sudo apt-get install --no-install-recommends -qq \
             tzdata \
             locales \
@@ -66,7 +77,6 @@ do
             jq \
             git \
             ssh \
-            sudo \
             iputils-ping \
             netcat \
             apt-transport-https \
@@ -76,65 +86,111 @@ do
             htop \
             nano \
             vim \
-            less
+            less \
+            tree
         ;;
 
-    "docker")
-        # add docker to apt
-        echo -e "\n===========> adding docker to apt..."
+    "user")
+        register_installed "user $USER with gid $GID in group $GROUP"
+        # create user and add to sudo, docker groups
+        #TODO fails if $GROUP already exists but $GID does not
+        #TODO fails if $UID already exists
+        $sudo groupadd -f -g "$GID" "$GROUP" \
+        && $sudo useradd -m -u "$UID" -g "$GID" -s /bin/bash "$USER" \
+        && $sudo usermod -aG sudo "$USER" \
+        && echo '%sudo ALL=(ALL:ALL) NOPASSWD:ALL' | $sudo tee -a /etc/sudoers  >/dev/null
+        ;;
+
+    "locale")
+        register_installed "locale C.UTF-8"
+        $sudo update-locale LANG=C.UTF-8
+        ;;
+
+    "docker-ce-cli")
+        register_installed "docker-ce-cli"
+        # set up docker group
+        [ -z "$(getent group docker)" ] && \
+            if [ -z "$DOCKER_GID" ]; then $sudo groupadd docker; \
+            else $sudo groupadd -g "$DOCKER_GID" docker; fi
+        $sudo usermod -aG docker "$USER"
+
+        # add docker-ce-cli to apt
         curl -fsSL https://download.docker.com/linux/ubuntu/gpg | $sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
         && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
             | $sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
 
+        # update apt and install docker-ce-cli
+        $sudo apt-get update \
+        && $sudo apt-get install --no-install-recommends -qq \
+            docker-ce-cli
+        ;;
+
+    "docker-ce")
+        register_installed "docker-ce"
+        # set up docker group
+        [ -z "$(getent group docker)" ] && \
+            if [ -z "$DOCKER_GID" ]; then $sudo groupadd docker; \
+            else $sudo groupadd -g "$DOCKER_GID" docker; fi
+        $sudo usermod -aG docker "$USER"
+
+        # add docker-ce to apt
+        echo -e "\n===========> adding docker-ce to apt..."
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | $sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
+        && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
+            | $sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
+
+        # update apt and install docker-ce
+        $sudo apt-get update \
+        && $sudo apt-get install --no-install-recommends -qq \
+            docker-ce
+        ;;
+
+    "kubectl")
+        register_installed "kubectl"
         # add kubectl to apt
-        echo -e "\n===========> adding kubectl to apt..."
         $sudo curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg \
         && echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" \
             | $sudo tee /etc/apt/sources.list.d/kubernetes.list >/dev/null
 
+        # update apt and install kubectl
+        $sudo apt-get update \
+        && $sudo apt-get install --no-install-recommends -qq \
+            kubectl
+        ;;
+
+    "azure-cli")
+        register_installed "azure-cli"
         # add azure-cli to apt
-        echo -e "\n===========> adding azure-cli to apt..."
         curl -sL https://packages.microsoft.com/keys/microsoft.asc | $sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/microsoft.gpg \
         && echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" \
             | $sudo tee /etc/apt/sources.list.d/azure-cli.list >/dev/null
 
-        # update apt and install docker-cli, kubectl, and azure-cli
-        echo -e "\n===========> installing docker-cli, kubectl, and azure-cli..."
+        # update apt and install azure-cli
         $sudo apt-get update \
         && $sudo apt-get install --no-install-recommends -qq \
-            docker-ce-cli \
-            kubectl \
             azure-cli
         ;;
 
     "certs")
-        echo -e "\n===========> installing self-signed certs..."
+        register_installed "certs"
         $sudo update-ca-certificates
         ;;
 
-    "user")
-        # create user and add to sudo, docker groups
-        #TODO fails if $GROUP already exists but $GID does not
-        #TODO fails if $UID already exists
-        echo -e "\n===========> creating user $USER with gid $GID in group $GROUP..."
-        $sudo groupadd -f -g "$GID" "$GROUP" \
-        && $sudo useradd -m -u "$UID" -g "$GID" -s /bin/bash "$USER" \
-        && $sudo usermod -aG sudo "$USER" \
-        && echo '%sudo ALL=(ALL:ALL) NOPASSWD:ALL' | $sudo tee -a /etc/sudoers  >/dev/null \
-        && if [ -z "$DOCKER_GID" ]; then $sudo groupadd docker; \
-            else $sudo groupadd -g "$DOCKER_GID" docker; fi \
-        && $sudo usermod -aG docker "$USER"
+    "kafkacat")
+        register_installed "kafkacat"
+        $sudo apt-get install --no-install-recommends -qq \
+            kafkacat
         ;;
 
     "dev")
-        echo -e "\n===========> installing dev tools..."
+        register_installed "dev tools"
         $sudo apt-get install --no-install-recommends -qq \
-            kafkacat \
+            build-essential \
             make
         ;;
 
     "rust")
-        echo -e "\n===========> installing rust..."
+        register_installed "rust"
         $sudo apt-get install --no-install-recommends -qq \
             build-essential
         sh <(curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs) -y \
@@ -147,11 +203,11 @@ do
         ;;
 
     "go")
+        register_installed "go $VERSION"
         VERSION="$(curl --silent https://go.dev/dl/?mode=json \
             | jq -r '.[].files[].version' | sort | uniq \
-            | exclude_go_betas | sed -e 's/go//' | sort -V | tail -1)" \
-        && echo -e "\n===========> installing go version $VERSION..." \
-        && go_version_not_installed "$VERSION" \
+            | exclude_go_betas | sed -e 's/go//' | sort -V | tail -1)"
+        go_version_not_installed "$VERSION" \
         && rm -rf "/tmp/install" && mkdir -p "/tmp/install" \
         && curl -o "/tmp/install/go.tar.gz" "https://storage.googleapis.com/golang/go$VERSION.$OS-$ARCH.tar.gz" \
         && $sudo rm -rf "/usr/local/go" \
@@ -162,22 +218,22 @@ do
         rm -rf "/tmp/install"
         ;;
 
-    "gui")
-        echo -e "\n===========> installing gui tools..."
+    "diffuse")
+        register_installed "diffuse"
         $sudo apt-get install --no-install-recommends -qq \
             gir1.2-gtk-3.0 gnome-icon-theme diffuse \
             gitk git-gui
         ;;
 
     "man")
-        echo -e "\n===========> installing man pages..."
+        register_installed "man pages"
         $sudo unminimize \
         && $sudo apt-get install --no-install-recommends -qq \
             man-db
         ;;
 
     "krew")
-        echo -e "\n===========> installing krew kubectl plugin manager..."
+        register_installed "krew"
         rm -rf "/tmp/install" && mkdir -p "/tmp/install" \
         && KREW="krew-${OS}_${ARCH}" \
         && curl -fsSL "https://github.com/kubernetes-sigs/krew/releases/latest/download/${KREW}.tar.gz" \
@@ -188,19 +244,19 @@ do
         ;;
 
     "krew-upgrade")
-        echo -e "\n===========> upgrading krew kubernetes plugin manager..."
+        echo -e "\n===========> upgrading krew..."
         kubectl krew upgrade
         ;;
 
     "helm3")
-        echo -e "\n===========> installing helm 3..."
+        register_installed "helm3"
         curl -sSL https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash \
         && helm version \
         && register_upgrade "helm3"
         ;;
 
     "kpt")
-        echo -e "\n===========> installing kpt..."
+        register_installed "kpt"
         rm -rf "/tmp/install" && mkdir -p "/tmp/install" \
         && curl -L "https://storage.googleapis.com/kpt-dev/latest/linux_amd64/kpt" -o "/tmp/install/kpt" \
         && $sudo install "/tmp/install/kpt" "/usr/local/bin" \
@@ -210,7 +266,7 @@ do
         ;;
 
     "kustomize")
-        echo -e "\n===========> installing kustomize..."
+        register_installed "kustomize"
         rm -rf "/tmp/install" && mkdir -p "/tmp/install" && cd "/tmp/install" \
         && curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash \
         && $sudo install "/tmp/install/kustomize" "/usr/local/bin" \
@@ -220,7 +276,7 @@ do
         ;;
 
     "k9s")
-        echo -e "\n===========> installing k9s..."
+        register_installed "k9s"
         get_github_latest_version "derailed/k9s" \
         && rm -rf "/tmp/install" && mkdir -p "/tmp/install" \
         && curl -L "https://github.com/derailed/k9s/releases/download/${VERSION}/k9s_Linux_x86_64.tar.gz" -o "/tmp/install/k9s.tar.gz" \
@@ -232,7 +288,7 @@ do
         ;;
 
     "devspace")
-        # echo -e "\n===========> installing devspace..."
+        # register_installed "devspace"
         # get_github_latest_version "devspace-cloud/devspace" \
         # && rm -rf "/tmp/install" && mkdir -p "/tmp/install" \
         # && curl -L "https://github.com/devspace-cloud/devspace/releases/download/$VERSION/devspace-linux-amd64" -o "/tmp/install/devspace" \

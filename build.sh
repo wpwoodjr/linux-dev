@@ -7,7 +7,7 @@ _UID="$(id -u)"
 _GROUP="$(id -g -n)"
 _GID="$(id -g)"
 HOME_DIR="/home/$_USER"
-DOCKER_GID="$(cat /etc/group | grep docker | cut -d: -f3)"
+DOCKER_GID="$(getent group docker | cut -d: -f3)"
 docker="$(which docker)"
 
 if [ "$1" = "--noproxy" ]

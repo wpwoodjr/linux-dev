@@ -5,11 +5,12 @@
 HOST_DIR="$1"
 shift 1
 
-NAME="linux-dev"
-[ ! -z "$1" ] && NAME="$1" && shift 1
-
 USER="$(id -u -n)"
-WORK_DIR="/home/$USER/work"
+BASENAME="$(basename $HOST_DIR)"
+WORK_DIR="/home/$USER/$BASENAME"
+
+NAME="$BASENAME"
+[ ! -z "$1" ] && NAME="$1" && shift 1
 
 set -e
 

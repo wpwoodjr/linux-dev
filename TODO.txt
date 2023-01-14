@@ -4,4 +4,16 @@
 > tzdata not working
 windows files have root owner when container started in windows
 docker daemon not working when run via Windows
+> Install docker, kubectl, etc separately
+> Install-tools called at end of Dockerfile for kpt etc, how to handle if passing on command line?  Why are they installed at end in user context?
+X Run apt install at end only
+> Create list of installed tools; what to do when running as root?
+> $USER may not be avail in install-tools unless using Dockerfile, need to set it if blank in install-tools
+> $DOCKER_GID not avail in install-tools unless using Dockerfile.  Create it based on existing group number for /var/run/docker.sock?  Check interaction with chgrp stuff in bashrc.  Why is that needed?
+> Where should do update-locale?  In install-tools?
+> What should locale be?  C.UTF-8 or en_US.UTF-8? C.UTF-8
+> Instead of "work" dir, use name of parent to passed dir?
+> Why does echo need -e in wsl (or in script?) but not in Dockerfile?  b/c Dockerfile is running sh, not bash
+> set umask to u=rwx,g=rx,o=rx
+
 release new version

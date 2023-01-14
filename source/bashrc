@@ -37,11 +37,23 @@ then
   export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
 
   # show mounted directory
-  echo Host directory \"$HOST_DIR\" mounted at \"$HOME/work\"
+  cd "$HOME/$(basename $HOST_DIR)"
+  echo Host directory \"$HOST_DIR\" mounted at \"$(pwd)\"
 
   # convert username in prompt to lower case
   # PS1="$(sed <<<$PS1 -e s/\\u/$(echo $(id -u -n) | tr [:upper:] [:lower:])/g)"
 
-  # make docker group owner of /var/run/docker.sock
-  [ -S "/var/run/docker.sock" ] && sudo chgrp docker "/var/run/docker.sock" && sudo chmod g+rw "/var/run/docker.sock"
+  # try to ensure that docker is group owner of /var/run/docker.sock
+  [ -S "/var/run/docker.sock" ] && [ -n "$(getent group docker)" ] && \
+    docker_group="$(stat -c %G /var/run/docker.sock)" && \
+    if [ "$docker_group" = "root" ]; then
+      echo "changing group ownership of /var/run/docker.sock from root to docker..."
+      sudo chgrp docker "/var/run/docker.sock" && sudo chmod g+rw "/var/run/docker.sock"
+    elif [ "$docker_group" = "UNKNOWN" ]; then
+      docker_group_id="$(stat -c %g /var/run/docker.sock)"
+      echo "changing docker group id to $docker_group_id, same as group owner of /var/run/docker.sock..."
+      sudo groupmod -g "$docker_group_id" docker
+    elif [ "$docker_group" != "docker" ]; then
+      echo "group owner of /var/run/docker.sock is $docker_group; sudo will be required to use docker"
+    fi
 fi
