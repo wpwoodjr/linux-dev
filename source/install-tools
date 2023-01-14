@@ -1,6 +1,13 @@
 #!/bin/bash
 # linux-dev install-tools
 
+# install apt package
+apt_install() {
+  $sudo apt-get update \
+  && $sudo apt-get install --no-install-recommends -qq \
+    $@
+}
+
 # exclude go betas and release candidates
 exclude_go_betas() {
     grep -v -E 'go[0-9\.]+(beta|rc)'
@@ -58,8 +65,7 @@ do
         # set up apt proxy (needed if using decrypting proxy; prevents OCSP validation errors)
         #RUN echo "Acquire { https::Verify-Peer false }" >>/etc/apt/apt.conf.d/99verify-peer.conf
         $sudo rm -f /etc/apt/apt.conf.d/docker-no-languages \
-        && $sudo apt-get update \
-        && $sudo apt-get install --no-install-recommends -qq \
+        && apt_install \
             apt-utils \
             sudo \
         && $sudo apt-get upgrade -qq
@@ -67,7 +73,7 @@ do
 
     "base")
         register_installed "base tools"
-        $sudo apt-get install --no-install-recommends -qq \
+        apt_install \
             tzdata \
             locales \
             ca-certificates \
@@ -115,13 +121,14 @@ do
         $sudo usermod -aG docker "$USER"
 
         # add docker-ce-cli to apt
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | $sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
-        && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
-            | $sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
+        $sudo mkdir -p /etc/apt/keyrings \
+        && curl -fsSL https://download.docker.com/linux/ubuntu/gpg | $sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg \
+        && echo \
+          "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
+          | $sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
         # update apt and install docker-ce-cli
-        $sudo apt-get update \
-        && $sudo apt-get install --no-install-recommends -qq \
+        apt_install \
             docker-ce-cli
         ;;
 
@@ -134,14 +141,14 @@ do
         $sudo usermod -aG docker "$USER"
 
         # add docker-ce to apt
-        echo -e "\n===========> adding docker-ce to apt..."
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | $sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
-        && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
-            | $sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
+        $sudo mkdir -p /etc/apt/keyrings \
+        && curl -fsSL https://download.docker.com/linux/ubuntu/gpg | $sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg \
+        && echo \
+          "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
+          | $sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
         # update apt and install docker-ce
-        $sudo apt-get update \
-        && $sudo apt-get install --no-install-recommends -qq \
+        apt_install \
             docker-ce
         ;;
 
@@ -153,8 +160,7 @@ do
             | $sudo tee /etc/apt/sources.list.d/kubernetes.list >/dev/null
 
         # update apt and install kubectl
-        $sudo apt-get update \
-        && $sudo apt-get install --no-install-recommends -qq \
+        apt_install \
             kubectl
         ;;
 
@@ -166,8 +172,7 @@ do
             | $sudo tee /etc/apt/sources.list.d/azure-cli.list >/dev/null
 
         # update apt and install azure-cli
-        $sudo apt-get update \
-        && $sudo apt-get install --no-install-recommends -qq \
+        apt_install \
             azure-cli
         ;;
 
@@ -178,20 +183,20 @@ do
 
     "kafkacat")
         register_installed "kafkacat"
-        $sudo apt-get install --no-install-recommends -qq \
+        apt_install \
             kafkacat
         ;;
 
     "dev")
         register_installed "dev tools"
-        $sudo apt-get install --no-install-recommends -qq \
+        apt_install \
             build-essential \
             make
         ;;
 
     "rust")
         register_installed "rust"
-        $sudo apt-get install --no-install-recommends -qq \
+        apt_install \
             build-essential
         sh <(curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs) -y \
         && register_upgrade "rust-upgrade"
@@ -220,15 +225,20 @@ do
 
     "diffuse")
         register_installed "diffuse"
-        $sudo apt-get install --no-install-recommends -qq \
-            gir1.2-gtk-3.0 gnome-icon-theme diffuse \
+        apt_install \
+            gir1.2-gtk-3.0 gnome-icon-theme diffuse
+        ;;
+
+    "git-tools")
+        register_installed "git-tools"
+        apt_install \
             gitk git-gui
         ;;
 
     "man")
         register_installed "man pages"
-        $sudo unminimize \
-        && $sudo apt-get install --no-install-recommends -qq \
+        $sudo unminimize
+        apt_install \
             man-db
         ;;
 
