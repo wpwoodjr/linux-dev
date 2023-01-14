@@ -46,6 +46,10 @@ go_version_not_installed() {
     || ! echo -e "\n===========> go $1 already installed"
 }
 
+show_help() {
+    echo "These actions are available: ${actions[*]}"
+}
+
 sudo=""
 [ "$EUID" -ne 0 ] && sudo="sudo -E"
 export DEBIAN_FRONTEND="noninteractive"
@@ -53,8 +57,40 @@ OS="$(uname | tr '[:upper:]' '[:lower:]')"
 ARCH="$(uname -m | sed -e 's/x86_64/amd64/' -e 's/\(arm\)\(64\)\?.*/\1\2/' -e 's/aarch64$/arm64/')"
 [ -z "$USER" ] && USER="$(whoami)"
 
+actions=( \
+    "init" \
+    "base" \
+    "user" \
+    "locale" \
+    "docker-ce-cli" \
+    "docker-ce" \
+    "kubectl" \
+    "azure-cli" \
+    "certs" \
+    "kafkacat" \
+    "dev" \
+    "rust" \
+    "rust-upgrade" \
+    "go" \
+    "diffuse" \
+    "git-tools" \
+    "man" \
+    "krew" \
+    "krew-upgrade" \
+    "helm3" \
+    "kpt" \
+    "kustomize" \
+    "k9s" \
+    "devspace" \
+    "upgrade")
+
+[ $# -eq 0 ] && show_help && exit 0
+
 for action
 do
+    # this will give an error if an action is not listed in help
+    [[ " ${actions[*]} " != *" $action "* ]] && echo -e "\n===========> \"$action\" not found" && show_help && continue
+
     case "$action" in
 
     "init")
@@ -317,7 +353,7 @@ do
         ;;
 
     *)
-        echo -e "\n===========> \"$action\" not found"
+        echo -e "\n===========> \"$action\" is listed in help but doesn't exist"
         ;;
     esac
 done

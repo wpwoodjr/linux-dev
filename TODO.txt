@@ -14,6 +14,7 @@ X Run apt install at end only
 > What should locale be?  C.UTF-8 or en_US.UTF-8? C.UTF-8
 > Instead of "work" dir, use name of parent to passed dir?
 > Why does echo need -e in wsl (or in script?) but not in Dockerfile?  b/c Dockerfile is running sh, not bash
-> set umask to u=rwx,g=rx,o=rx
+> add setup.sh for non-docker installs
+> add help
 
 release new version
