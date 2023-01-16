@@ -221,10 +221,13 @@ do
 
         # add docker-ce-cli to apt
         $sudo mkdir -p /etc/apt/keyrings \
-        && curl -fsSL https://download.docker.com/linux/ubuntu/gpg | $sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg \
+        && curl -fsSL https://download.docker.com/linux/ubuntu/gpg |
+            gpg --dearmor |
+            $sudo tee /etc/apt/keyrings/docker.gpg >/dev/null \
+        && $sudo chmod go+r /etc/apt/keyrings/docker.gpg \
         && echo \
-          "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
-          | $sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+          "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" |
+          $sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
         # update apt and install docker-ce-cli
         apt_install \
@@ -241,10 +244,13 @@ do
 
         # add docker-ce to apt
         $sudo mkdir -p /etc/apt/keyrings \
-        && curl -fsSL https://download.docker.com/linux/ubuntu/gpg | $sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg \
+        && curl -fsSL https://download.docker.com/linux/ubuntu/gpg |
+            gpg --dearmor |
+            $sudo tee /etc/apt/keyrings/docker.gpg >/dev/null \
+        && $sudo chmod go+r /etc/apt/keyrings/docker.gpg \
         && echo \
-          "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
-          | $sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+          "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" |
+          $sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
         # update apt and install docker-ce
         apt_install \
@@ -266,13 +272,13 @@ do
     "azure-cli")
         register_installed "azure-cli"
         # add azure-cli to apt
-        $sudo mkdir -p /etc/apt/keyrings
-        curl -sLS https://packages.microsoft.com/keys/microsoft.asc |
+        $sudo mkdir -p /etc/apt/keyrings \
+        && curl -sLS https://packages.microsoft.com/keys/microsoft.asc |
             gpg --dearmor |
-            $sudo tee /etc/apt/keyrings/microsoft.gpg > /dev/null
-        $sudo chmod go+r /etc/apt/keyrings/microsoft.gpg
-        AZ_REPO=$(lsb_release -cs)
-        echo "deb [arch=`dpkg --print-architecture` signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" |
+            $sudo tee /etc/apt/keyrings/microsoft.gpg >/dev/null \
+        && $sudo chmod go+r /etc/apt/keyrings/microsoft.gpg \
+        && AZ_REPO=$(lsb_release -cs) \
+        && echo "deb [arch=`dpkg --print-architecture` signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" |
             $sudo tee /etc/apt/sources.list.d/azure-cli.list >/dev/null
 
         # update apt and install azure-cli
