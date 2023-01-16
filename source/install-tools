@@ -1,6 +1,74 @@
 #!/bin/bash
 # linux-dev install-tools
 
+show_help() {
+    cat 1>&2 <<EOF
+Usage: install-tools [OPTIONS] [ACTIONS]
+
+OPTIONS:
+  -h, --help        Show this help message
+
+ACTIONS (one or more actions separated by a space):
+  init           Initialize the environment and set up necessary dependencies
+  base           Install basic tools such as curl and unzip
+  user           Configure user settings and environment for docker container
+  locale         Set the locale LANG to C.UTF-8
+  docker-ce-cli  Install the Docker command-line interface (CLI)
+  docker-ce      Install the Docker Community Edition (CE) engine and CLI
+  kubectl        Install kubectl, the Kubernetes command-line tool
+  azure-cli      Install the Azure command-line interface
+  certs          Install certificates for secure connections
+  kafkacat       Install kafkacat, a command-line tool for interacting with Apache Kafka
+  dev            Install development tools such as build-essential and cmake
+  rust           Install the Rust programming language and Cargo package manager
+  rust-upgrade   Upgrade the Rust programming language and Cargo package manager
+  go             Install the Go programming language
+  diffuse        Install the Diffuse diff/merge gui tool
+  git-tools      Install Git tools such as tig
+  git-gui-tools  Install Git gui tools gitk and git-gui
+  man            Install man-pages and other man page enhancements
+  krew           Install Krew, a package manager for kubectl plugins
+  krew-upgrade   Upgrade Krew and all installed kubectl plugins
+  helm3          Install Helm 3, a package manager for Kubernetes
+  kpt            Install kpt, a tool for managing Kubernetes resource configuration
+  kustomize      Install kustomize, a tool for customizing Kubernetes resource configurations
+  k9s            Install k9s, a command-line tool for interacting with Kubernetes
+  devspace       Install DevSpace, an interactive developer tool for Kubernetes
+  acorn          Install Acorn, an application packaging and deployment framework for Kubernetes
+  upgrade        Upgrade all the tools that were previously installed and registered for upgrades
+EOF
+}
+
+actions=( \
+    "-h" "--help" \
+    "init" \
+    "base" \
+    "user" \
+    "locale" \
+    "docker-ce-cli" \
+    "docker-ce" \
+    "kubectl" \
+    "azure-cli" \
+    "certs" \
+    "kafkacat" \
+    "dev" \
+    "rust" \
+    "rust-upgrade" \
+    "go" \
+    "diffuse" \
+    "git-tools" \
+    "git-gui-tools" \
+    "man" \
+    "krew" \
+    "krew-upgrade" \
+    "helm3" \
+    "kpt" \
+    "kustomize" \
+    "k9s" \
+    "devspace" \
+    "acorn" \
+    "upgrade")
+
 # install apt package
 apt_install() {
   $sudo apt-get update \
@@ -14,12 +82,27 @@ exclude_go_betas() {
 }
 
 # gets the latest github version of a package
+# get_github_latest_version() {
+#   local PAT='v[0-9]*.[0-9]*.[0-9]*'
+#   echo "$(curl -SsL "https://github.com/$1/releases/latest" \
+#     | grep href=\""/$1/releases/tag/$PAT"\" \
+#     | grep -o "tag/$PAT" \
+#     | cut -d "/" -f 2)"
+# }
+
+# gets the latest github version of a package
 get_github_latest_version() {
-  local PAT='v[0-9]*.[0-9]*.[0-9]*'
-  VERSION=$(curl -SsL "https://github.com/$1/releases/latest" \
-    | grep href=\""/$1/releases/tag/$PAT"\" \
-    | grep -o "tag/$PAT" \
-    | cut -d "/" -f 2)
+    echo "$(curl -s https://api.github.com/repos/$1/releases | grep -m 1 \"tag_name\": | cut -d \" -f 4)"
+}
+
+get_github_download_url() {
+    local url="$(curl -s https://api.github.com/repos/$1/releases | grep -i -m 1 "browser_download_url.*$OS.*$ARCH.*tar.gz\"" | cut -d \" -f 4)"
+    if [ -z "$url" ]; then
+        [ "$ARCH" = "amd64" ] && \
+            url="$(curl -s https://api.github.com/repos/$1/releases | grep -i -m 1 "browser_download_url.*$OS.*x86_64.*tar.gz\"" | cut -d \" -f 4)"
+        [ -z "$url" ] && return 1
+    fi
+    echo "$url"
 }
 
 mkdir -p "$HOME/.linux-dev"
@@ -42,13 +125,16 @@ add_path() {
 }
 
 go_version_not_installed() {
-    ! (hash "/usr/local/go/bin/go" 2>/dev/null && grep -q "$1" <<<"$(/usr/local/go/bin/go version)") \
+    [ ! -f "/usr/local/go/bin/go" ] \
+    || ! (hash "/usr/local/go/bin/go" 2>/dev/null && grep -q "$1" <<<"$(/usr/local/go/bin/go version)") \
     || ! echo -e "\n===========> go $1 already installed"
 }
 
-show_help() {
-    echo "These actions are available: ${actions[*]}"
+get_script_path() {
+    # echo "$(readlink -f -- "${BASH_SOURCE[0]}")"
+    echo "${BASH_SOURCE[0]}"
 }
+install_tools="$(get_script_path)"
 
 sudo=""
 [ "$EUID" -ne 0 ] && sudo="sudo -E"
@@ -56,33 +142,6 @@ export DEBIAN_FRONTEND="noninteractive"
 OS="$(uname | tr '[:upper:]' '[:lower:]')"
 ARCH="$(uname -m | sed -e 's/x86_64/amd64/' -e 's/\(arm\)\(64\)\?.*/\1\2/' -e 's/aarch64$/arm64/')"
 [ -z "$USER" ] && USER="$(whoami)"
-
-actions=( \
-    "init" \
-    "base" \
-    "user" \
-    "locale" \
-    "docker-ce-cli" \
-    "docker-ce" \
-    "kubectl" \
-    "azure-cli" \
-    "certs" \
-    "kafkacat" \
-    "dev" \
-    "rust" \
-    "rust-upgrade" \
-    "go" \
-    "diffuse" \
-    "git-tools" \
-    "man" \
-    "krew" \
-    "krew-upgrade" \
-    "helm3" \
-    "kpt" \
-    "kustomize" \
-    "k9s" \
-    "devspace" \
-    "upgrade")
 
 [ $# -eq 0 ] && show_help && exit 0
 
@@ -92,6 +151,10 @@ do
     [[ " ${actions[*]} " != *" $action "* ]] && echo -e "\n===========> \"$action\" not found" && show_help && continue
 
     case "$action" in
+
+    -h|--help)
+        show_help && exit 0
+        ;;
 
     "init")
         register_installed "init"
@@ -191,8 +254,8 @@ do
     "kubectl")
         register_installed "kubectl"
         # add kubectl to apt
-        $sudo curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg \
-        && echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" \
+        $sudo curl -fsSLo /etc/apt/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg \
+        && echo "deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" \
             | $sudo tee /etc/apt/sources.list.d/kubernetes.list >/dev/null
 
         # update apt and install kubectl
@@ -203,9 +266,14 @@ do
     "azure-cli")
         register_installed "azure-cli"
         # add azure-cli to apt
-        curl -sL https://packages.microsoft.com/keys/microsoft.asc | $sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/microsoft.gpg \
-        && echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" \
-            | $sudo tee /etc/apt/sources.list.d/azure-cli.list >/dev/null
+        $sudo mkdir -p /etc/apt/keyrings
+        curl -sLS https://packages.microsoft.com/keys/microsoft.asc |
+            gpg --dearmor |
+            $sudo tee /etc/apt/keyrings/microsoft.gpg > /dev/null
+        $sudo chmod go+r /etc/apt/keyrings/microsoft.gpg
+        AZ_REPO=$(lsb_release -cs)
+        echo "deb [arch=`dpkg --print-architecture` signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" |
+            $sudo tee /etc/apt/sources.list.d/azure-cli.list >/dev/null
 
         # update apt and install azure-cli
         apt_install \
@@ -227,13 +295,14 @@ do
         register_installed "dev tools"
         apt_install \
             build-essential \
+            pkg-config \
+            libssl-dev \
             make
         ;;
 
     "rust")
+        $install_tools dev
         register_installed "rust"
-        apt_install \
-            build-essential
         sh <(curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs) -y \
         && register_upgrade "rust-upgrade"
         ;;
@@ -244,13 +313,14 @@ do
         ;;
 
     "go")
-        register_installed "go $VERSION"
+        register_installed "go"
         VERSION="$(curl --silent https://go.dev/dl/?mode=json \
             | jq -r '.[].files[].version' | sort | uniq \
             | exclude_go_betas | sed -e 's/go//' | sort -V | tail -1)"
         go_version_not_installed "$VERSION" \
         && rm -rf "/tmp/install" && mkdir -p "/tmp/install" \
-        && curl -o "/tmp/install/go.tar.gz" "https://storage.googleapis.com/golang/go$VERSION.$OS-$ARCH.tar.gz" \
+        && echo "https://go.dev/dl/go$VERSION.$OS-$ARCH.tar.gz" \
+        && curl -L -o "/tmp/install/go.tar.gz" "https://go.dev/dl/go$VERSION.$OS-$ARCH.tar.gz" \
         && $sudo rm -rf "/usr/local/go" \
         && $sudo tar -C "/usr/local" -xzf "/tmp/install/go.tar.gz" \
         && add_path "/usr/local/go/bin" \
@@ -268,6 +338,12 @@ do
     "git-tools")
         register_installed "git-tools"
         apt_install \
+            tig
+        ;;
+
+    "git-gui-tools")
+        register_installed "git-gui-tools"
+        apt_install \
             gitk git-gui
         ;;
 
@@ -281,10 +357,8 @@ do
     "krew")
         register_installed "krew"
         rm -rf "/tmp/install" && mkdir -p "/tmp/install" \
-        && KREW="krew-${OS}_${ARCH}" \
-        && curl -fsSL "https://github.com/kubernetes-sigs/krew/releases/latest/download/${KREW}.tar.gz" \
-            | tar -zxC "/tmp/install" \
-        && "/tmp/install/${KREW}" install krew \
+        && curl -sSL "$(get_github_download_url "kubernetes-sigs/krew")" | tar -zxC "/tmp/install" \
+        && "$(ls /tmp/install/krew*)" install krew \
         && register_upgrade "krew-upgrade"
         rm -rf "/tmp/install"
         ;;
@@ -296,7 +370,7 @@ do
 
     "helm3")
         register_installed "helm3"
-        curl -sSL https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash \
+        curl -sSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash \
         && helm version \
         && register_upgrade "helm3"
         ;;
@@ -304,7 +378,7 @@ do
     "kpt")
         register_installed "kpt"
         rm -rf "/tmp/install" && mkdir -p "/tmp/install" \
-        && curl -L "https://storage.googleapis.com/kpt-dev/latest/linux_amd64/kpt" -o "/tmp/install/kpt" \
+        && curl -sSL "$(get_github_download_url "GoogleContainerTools/kpt")" | tar -zxC "/tmp/install" \
         && $sudo install "/tmp/install/kpt" "/usr/local/bin" \
         && echo "kpt version $(kpt version)" \
         && register_upgrade "kpt"
@@ -314,7 +388,7 @@ do
     "kustomize")
         register_installed "kustomize"
         rm -rf "/tmp/install" && mkdir -p "/tmp/install" && cd "/tmp/install" \
-        && curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash \
+        && curl -sSl "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash \
         && $sudo install "/tmp/install/kustomize" "/usr/local/bin" \
         && register_upgrade "kustomize"
         cd - >/dev/null
@@ -323,10 +397,8 @@ do
 
     "k9s")
         register_installed "k9s"
-        get_github_latest_version "derailed/k9s" \
-        && rm -rf "/tmp/install" && mkdir -p "/tmp/install" \
-        && curl -L "https://github.com/derailed/k9s/releases/download/${VERSION}/k9s_Linux_x86_64.tar.gz" -o "/tmp/install/k9s.tar.gz" \
-        && tar xzf "/tmp/install/k9s.tar.gz" -C "/tmp/install" \
+        rm -rf "/tmp/install" && mkdir -p "/tmp/install" \
+        && curl -sSL "$(get_github_download_url "derailed/k9s")" | tar -zxC "/tmp/install" \
         && $sudo install "/tmp/install/k9s" "/usr/local/bin" \
         && k9s version \
         && register_upgrade "k9s"
@@ -334,14 +406,23 @@ do
         ;;
 
     "devspace")
-        # register_installed "devspace"
-        # get_github_latest_version "devspace-cloud/devspace" \
-        # && rm -rf "/tmp/install" && mkdir -p "/tmp/install" \
-        # && curl -L "https://github.com/devspace-cloud/devspace/releases/download/$VERSION/devspace-linux-amd64" -o "/tmp/install/devspace" \
-        # && $sudo install "/tmp/install/devspace" "/usr/local/bin" \
-        # && devspace --version \
-        # && register_upgrade "devspace"
-        # rm -rf "/tmp/install"
+        register_installed "devspace"
+        rm -rf "/tmp/install" && mkdir -p "/tmp/install" \
+        && curl -sSL -o /tmp/install/devspace "https://github.com/loft-sh/devspace/releases/latest/download/devspace-$OS-$ARCH" \
+        && $sudo install "/tmp/install/devspace" "/usr/local/bin" \
+        && devspace --version \
+        && register_upgrade "devspace"
+        rm -rf "/tmp/install"
+        ;;
+
+    "acorn")
+        register_installed "acorn"
+        rm -rf "/tmp/install" && mkdir -p "/tmp/install" \
+        && curl -sSL "$(get_github_download_url "acorn-io/acorn")" | tar -zxC "/tmp/install" \
+        && $sudo install "/tmp/install/acorn" "/usr/local/bin" \
+        && echo "$(acorn --version)" \
+        && register_upgrade "acorn"
+        rm -rf "/tmp/install"
         ;;
 
     "upgrade")

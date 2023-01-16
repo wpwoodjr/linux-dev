@@ -13,6 +13,7 @@ docker="$(which docker)"
 if [ "$1" = "--noproxy" ]
 then
   shift 1
+  USER_TOOLS="USER_TOOLS=$@"
   echo "Building docker container..."
   sudo -E "$docker" build --tag "$image" source \
     --progress plain \
@@ -23,7 +24,7 @@ then
     --build-arg GID="$_GID" \
     --build-arg DOCKER_GID="$DOCKER_GID" \
     --build-arg TERM="$TERM" \
-    $@
+    --build-arg "$USER_TOOLS"
 else
   uname="$1"
   [ -z "$uname" ] && echo -e "Usage: ./build.sh USERNAME ['PASSWORD']\n   or: ./build.sh --noproxy" && exit
@@ -71,6 +72,7 @@ else
   proxy="http://$uname:$pwd@nodecrypt.corp.com:800"
   noproxy="localhost,127.0.0.1,.corp.com,.corp2.com"
 
+  USER_TOOLS="USER_TOOLS=$@"
   echo "Building docker container..."
   sudo -E "$docker" build --tag "$image" source \
     --progress plain \
@@ -89,5 +91,5 @@ else
     --build-arg FTP_PROXY="$proxy" \
     --build-arg no_proxy="$noproxy" \
     --build-arg NO_PROXY="$noproxy" \
-    $@
+    --build-arg "$USER_TOOLS"
 fi

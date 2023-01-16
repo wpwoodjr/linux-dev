@@ -15,6 +15,12 @@ X Run apt install at end only
 > Instead of "work" dir, use name of parent to passed dir?
 > Why does echo need -e in wsl (or in script?) but not in Dockerfile?  b/c Dockerfile is running sh, not bash
 > add setup.sh for non-docker installs
-> add help
+> add help to install-tools
+> run x apps from container
+> improve option handling in run.sh
+> add devspace and acorn Kubernetes development tools
+> add tig git tool
+> improve github release url lookup
+only run register_installed after successful installation
 
 release new version

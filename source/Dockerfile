@@ -7,9 +7,8 @@
 
 ARG UBUNTU_VERSION="22.04"
 FROM ubuntu:${UBUNTU_VERSION}
-ARG USER UID GROUP GID DOCKER_GID HOME_DIR \
-  TERM="xterm-256color" \
-  USER_TOOLS="docker-ce-cli"
+ARG USER UID GROUP GID DOCKER_GID HOME_DIR USER_TOOLS \
+  TERM="xterm-256color"
 #  USER_TOOLS="docker-ce-cli kubectl azure-cli kafkacat krew helm3 kpt kustomize k9s"
 
 # # add self-signed certs
@@ -27,7 +26,7 @@ COPY install-tools docker set-proxy.sh no-proxy.sh merge-kubeconfig az-get-crede
 # install utilities, init and create $USER
 #   sed command converts Windows (CR LF) to Unix (LF) line endings
 RUN echo "\n===========> installing utility tools..." \
-&& for f in $(ls "/usr/local/bin"); do chmod a+rx-w "/usr/local/bin/$f" && sed -i 's/\r$//' "/usr/local/bin/$f" && echo "$f"; done \
+&& for f in $(ls "/usr/local/bin"); do chmod 0755 "/usr/local/bin/$f" && sed -i 's/\r$//' "/usr/local/bin/$f" && echo "$f"; done \
 && /usr/local/bin/install-tools init user
 
 USER "$USER"
@@ -38,7 +37,7 @@ ENV TERM=$TERM
 COPY --chown=$USER:$GROUP help.txt bashrc init "$HOME_DIR"/
 
 # install base, locale, and user tools; configure git, help.txt, .bashrc, and init
-RUN /usr/local/bin/install-tools base locale $USER_TOOLS \
+RUN /usr/local/bin/install-tools base locale docker-ce-cli $USER_TOOLS \
 && echo "\n===========> configuring git, help text, .bashrc, and init..." \
 && git config --global http.proxyAuthMethod 'basic' \
 && sed -i 's/\r$//' "$HOME_DIR/help.txt" \

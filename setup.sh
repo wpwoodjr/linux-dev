@@ -13,7 +13,7 @@ register_installed "setup"
 echo -e "\n===========> installing utility tools..."
 for f in "install-tools" "merge-kubeconfig" "az-get-credentials"; do
   sudo cp "source/$f" /usr/local/bin
-  sudo chmod a+rx-w "/usr/local/bin/$f"
+  sudo chmod 0755 "/usr/local/bin/$f"
   # sed command converts Windows (CR LF) to Unix (LF) line endings
   sudo sed -i 's/\r$//' "/usr/local/bin/$f"
   ls -l "/usr/local/bin/$f"
