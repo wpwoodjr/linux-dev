@@ -8,9 +8,7 @@ register_installed() {
     [ "$EUID" -ne 0 ] && grep -s -q "^$1$" "$installed_tools" || echo "$1" >>"$installed_tools"
 }
 
-register_installed "setup"
-# install utilities, init, base
-echo -e "\n===========> installing utility tools..."
+register_installed "utility scripts"
 for f in "install-tools" "merge-kubeconfig" "az-get-credentials"; do
   sudo cp "source/$f" /usr/local/bin
   sudo chmod 0755 "/usr/local/bin/$f"
