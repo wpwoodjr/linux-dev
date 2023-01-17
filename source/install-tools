@@ -349,6 +349,7 @@ do
         register_installed "git-tools"
         apt_install \
             tig \
+            bsdmainutils \
             make
 
         rm -rf "/tmp/install" && mkdir -p "/tmp/install" && cd "/tmp/install" \
