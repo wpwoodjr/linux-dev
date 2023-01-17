@@ -24,7 +24,7 @@ ACTIONS (one or more actions separated by a space):
   rust-upgrade   Upgrade the Rust programming language and Cargo package manager
   go             Install the Go programming language
   diffuse        Install the Diffuse diff/merge gui tool
-  git-tools      Install Git tools such as tig
+  git-tools      Install Git tools such as tig and git-extras
   git-gui-tools  Install Git gui tools gitk and git-gui
   man            Install man-pages and other man page enhancements
   krew           Install Krew, a package manager for kubectl plugins
@@ -90,16 +90,20 @@ exclude_go_betas() {
 #     | cut -d "/" -f 2)"
 # }
 
+get_github_first_match() {
+    echo "$(curl -s https://api.github.com/repos/$1/releases | grep -i -m 1 "\"$2\"" | cut -d \" -f 4)"
+}
+
 # gets the latest github version of a package
 get_github_latest_version() {
-    echo "$(curl -s https://api.github.com/repos/$1/releases | grep -m 1 \"tag_name\": | cut -d \" -f 4)"
+    echo "$(get_github_first_match $1 "tag_name")"
 }
 
 get_github_download_url() {
-    local url="$(curl -s https://api.github.com/repos/$1/releases | grep -i -m 1 "browser_download_url.*$OS.*$ARCH.*tar.gz\"" | cut -d \" -f 4)"
+    local url="$(get_github_first_match $1 "browser_download_url.*$OS.*$ARCH.*tar.gz")"
     if [ -z "$url" ]; then
         [ "$ARCH" = "amd64" ] && \
-            url="$(curl -s https://api.github.com/repos/$1/releases | grep -i -m 1 "browser_download_url.*$OS.*x86_64.*tar.gz\"" | cut -d \" -f 4)"
+            url="$(get_github_first_match $1 "browser_download_url.*$OS.*x86_64.*tar.gz")"
         [ -z "$url" ] && return 1
     fi
     echo "$url"
@@ -344,7 +348,15 @@ do
     "git-tools")
         register_installed "git-tools"
         apt_install \
-            tig
+            tig \
+            make
+
+        rm -rf "/tmp/install" && mkdir -p "/tmp/install" && cd "/tmp/install" \
+        && git clone https://github.com/tj/git-extras.git \
+        && cd git-extras \
+        && git checkout $(git describe --tags $(git rev-list --tags --max-count=1)) \
+        && $sudo make install
+        rm -rf "/tmp/install"
         ;;
 
     "git-gui-tools")
