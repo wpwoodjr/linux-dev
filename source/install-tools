@@ -328,15 +328,14 @@ do
             | jq -r '.[].files[].version' | sort | uniq \
             | exclude_go_betas | sed -e 's/go//' | sort -V | tail -1)"
         go_version_not_installed "$VERSION" \
-        && rm -rf "/tmp/install" && mkdir -p "/tmp/install" \
-        && echo "https://go.dev/dl/go$VERSION.$OS-$ARCH.tar.gz" \
-        && curl -L -o "/tmp/install/go.tar.gz" "https://go.dev/dl/go$VERSION.$OS-$ARCH.tar.gz" \
+        && install_dir="$(mktemp -t -d linux-dev-install.XXXXXXXXXX)" && cd "$install_dir" \
+        && curl -sSL -o "go.tar.gz" "https://go.dev/dl/go$VERSION.$OS-$ARCH.tar.gz" \
         && $sudo rm -rf "/usr/local/go" \
-        && $sudo tar -C "/usr/local" -xzf "/tmp/install/go.tar.gz" \
+        && $sudo tar -C "/usr/local" -xzf "go.tar.gz" \
         && add_path "/usr/local/go/bin" \
         && /usr/local/go/bin/go version \
         && register_upgrade "go"
-        rm -rf "/tmp/install"
+        rm -rf "$install_dir"
         ;;
 
     "diffuse")
@@ -352,12 +351,12 @@ do
             bsdmainutils \
             make
 
-        rm -rf "/tmp/install" && mkdir -p "/tmp/install" && cd "/tmp/install" \
-        && git clone https://github.com/tj/git-extras.git \
+        install_dir="$(mktemp -t -d linux-dev-install.XXXXXXXXXX)" && cd "$install_dir" \
+        && git clone https://github.com/tj/git-extras.git 2>/dev/null \
         && cd git-extras \
-        && git checkout $(git describe --tags $(git rev-list --tags --max-count=1)) \
+        && git checkout $(git describe --tags $(git rev-list --tags --max-count=1)) 2>/dev/null \
         && $sudo make install
-        rm -rf "/tmp/install"
+        rm -rf "$install_dir"
         ;;
 
     "git-gui-tools")
@@ -375,11 +374,11 @@ do
 
     "krew")
         register_installed "krew"
-        rm -rf "/tmp/install" && mkdir -p "/tmp/install" \
-        && curl -sSL "$(get_github_download_url "kubernetes-sigs/krew")" | tar -zxC "/tmp/install" \
-        && "$(ls /tmp/install/krew*)" install krew \
+        install_dir="$(mktemp -t -d linux-dev-install.XXXXXXXXXX)" && cd "$install_dir" \
+        && curl -sSL "$(get_github_download_url "kubernetes-sigs/krew")" | tar -zx \
+        && "$(ls $install_dir/krew*)" install krew \
         && register_upgrade "krew-upgrade"
-        rm -rf "/tmp/install"
+        rm -rf "$install_dir"
         ;;
 
     "krew-upgrade")
@@ -396,52 +395,51 @@ do
 
     "kpt")
         register_installed "kpt"
-        rm -rf "/tmp/install" && mkdir -p "/tmp/install" \
-        && curl -sSL "$(get_github_download_url "GoogleContainerTools/kpt")" | tar -zxC "/tmp/install" \
-        && $sudo install "/tmp/install/kpt" "/usr/local/bin" \
+        install_dir="$(mktemp -t -d linux-dev-install.XXXXXXXXXX)" && cd "$install_dir" \
+        && curl -sSL "$(get_github_download_url "GoogleContainerTools/kpt")" | tar -zx \
+        && $sudo install "kpt" "/usr/local/bin" \
         && echo "kpt version $(kpt version)" \
         && register_upgrade "kpt"
-        rm -rf "/tmp/install"
+        rm -rf "$install_dir"
         ;;
 
     "kustomize")
         register_installed "kustomize"
-        rm -rf "/tmp/install" && mkdir -p "/tmp/install" && cd "/tmp/install" \
+        install_dir="$(mktemp -t -d linux-dev-install.XXXXXXXXXX)" && cd "$install_dir" \
         && curl -sSl "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash \
-        && $sudo install "/tmp/install/kustomize" "/usr/local/bin" \
+        && $sudo install "kustomize" "/usr/local/bin" \
         && register_upgrade "kustomize"
-        cd - >/dev/null
-        rm -rf "/tmp/install"
+        rm -rf "$install_dir"
         ;;
 
     "k9s")
         register_installed "k9s"
-        rm -rf "/tmp/install" && mkdir -p "/tmp/install" \
-        && curl -sSL "$(get_github_download_url "derailed/k9s")" | tar -zxC "/tmp/install" \
-        && $sudo install "/tmp/install/k9s" "/usr/local/bin" \
+        install_dir="$(mktemp -t -d linux-dev-install.XXXXXXXXXX)" && cd "$install_dir" \
+        && curl -sSL "$(get_github_download_url "derailed/k9s")" | tar -zx \
+        && $sudo install "k9s" "/usr/local/bin" \
         && k9s version \
         && register_upgrade "k9s"
-        rm -rf "/tmp/install"
+        rm -rf "$install_dir"
         ;;
 
     "devspace")
         register_installed "devspace"
-        rm -rf "/tmp/install" && mkdir -p "/tmp/install" \
-        && curl -sSL -o /tmp/install/devspace "https://github.com/loft-sh/devspace/releases/latest/download/devspace-$OS-$ARCH" \
-        && $sudo install "/tmp/install/devspace" "/usr/local/bin" \
+        install_dir="$(mktemp -t -d linux-dev-install.XXXXXXXXXX)" && cd "$install_dir" \
+        && curl -sSL -o devspace "https://github.com/loft-sh/devspace/releases/latest/download/devspace-$OS-$ARCH" \
+        && $sudo install "devspace" "/usr/local/bin" \
         && devspace --version \
         && register_upgrade "devspace"
-        rm -rf "/tmp/install"
+        rm -rf "$install_dir"
         ;;
 
     "acorn")
         register_installed "acorn"
-        rm -rf "/tmp/install" && mkdir -p "/tmp/install" \
-        && curl -sSL "$(get_github_download_url "acorn-io/acorn")" | tar -zxC "/tmp/install" \
-        && $sudo install "/tmp/install/acorn" "/usr/local/bin" \
+        install_dir="$(mktemp -t -d linux-dev-install.XXXXXXXXXX)" && cd "$install_dir" \
+        && curl -sSL "$(get_github_download_url "acorn-io/acorn")" | tar -zx \
+        && $sudo install "acorn" "/usr/local/bin" \
         && echo "$(acorn --version)" \
         && register_upgrade "acorn"
-        rm -rf "/tmp/install"
+        rm -rf "$install_dir"
         ;;
 
     "upgrade")
