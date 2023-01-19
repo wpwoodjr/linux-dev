@@ -2,7 +2,7 @@
 # linux-dev install-tools
 
 show_version() {
-    echo "Version 3.0-a10"
+    echo "Version 3.0-alpha11"
 }
 
 show_help() {
@@ -12,6 +12,7 @@ Usage: install-tools [OPTIONS] [ACTIONS]
 OPTIONS:
   -h, --help        Show this help message
   -v, --version     Show version
+  -i, --installed   Show currently installed tools
 
 ACTIONS (one or more actions separated by a space):
   init           Initialize the environment and set up necessary dependencies
@@ -47,6 +48,7 @@ EOF
 actions=( \
     "-h" "--help" \
     "-v" "--version" \
+    "-i" "--installed" \
     "init" \
     "base" \
     "user" \
@@ -129,6 +131,10 @@ register_installed() {
     [ "$EUID" -ne 0 ] && grep -s -q "^$1$" "$installed_tools" || echo "$1" >>"$installed_tools"
 }
 
+show_installed() {
+    [ -f "$installed_tools" ] && cat "$installed_tools"
+}
+
 # add to path in .bashrc
 add_path() {
     grep -q ":$1" "$HOME/.bashrc" || echo "export PATH=\$PATH:$1" >>~/.bashrc
@@ -168,6 +174,10 @@ do
 
     -v|--version)
         show_version && exit 0
+        ;;
+
+    -i|--installed)
+        show_installed && exit 0
         ;;
 
     "init")
