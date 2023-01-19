@@ -1,12 +1,17 @@
 #!/bin/bash
 # linux-dev install-tools
 
+show_version() {
+    echo "Version 3.0-a10"
+}
+
 show_help() {
     cat 1>&2 <<EOF
 Usage: install-tools [OPTIONS] [ACTIONS]
 
 OPTIONS:
   -h, --help        Show this help message
+  -v, --version     Show version
 
 ACTIONS (one or more actions separated by a space):
   init           Initialize the environment and set up necessary dependencies
@@ -41,6 +46,7 @@ EOF
 
 actions=( \
     "-h" "--help" \
+    "-v" "--version" \
     "init" \
     "base" \
     "user" \
@@ -158,6 +164,10 @@ do
 
     -h|--help)
         show_help && exit 0
+        ;;
+
+    -v|--version)
+        show_version && exit 0
         ;;
 
     "init")
